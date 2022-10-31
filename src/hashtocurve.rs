@@ -1,12 +1,14 @@
 //! This module implements "simplified SWU" hashing to short Weierstrass curves
 //! with a = 0.
-
 use static_assertions::const_assert;
 use subtle::ConstantTimeEq;
 
 use crate::arithmetic::{CurveExt, FieldExt};
+#[cfg(feature = "sha256-hash-to-curve")]
+use sha2::{Digest, Sha256};
 
 /// Hashes over a message and writes the output to all of `buf`.
+#[cfg(not(feature = "sha256-hash-to-curve"))]
 pub fn hash_to_field<F: FieldExt>(
     curve_id: &str,
     domain_prefix: &str,
@@ -71,6 +73,68 @@ pub fn hash_to_field<F: FieldExt>(
     for (big, buf) in [b_1, b_2].iter().zip(buf.iter_mut()) {
         let mut little = [0u8; CHUNKLEN];
         little.copy_from_slice(big.as_array());
+        little.reverse();
+        *buf = F::from_bytes_wide(&little);
+    }
+}
+
+/// Hashes over a message and writes the output to all of `buf`.
+#[cfg(feature = "sha256-hash-to-curve")]
+pub fn hash_to_field<F: FieldExt>(
+    curve_id: &str,
+    domain_prefix: &str,
+    message: &[u8],
+    buf: &mut [F; 2],
+) {
+    assert!(domain_prefix.len() < 256);
+    assert!((22 + curve_id.len() + domain_prefix.len()) < 256);
+
+    // Assume that the field size is 32 bytes and k is 256, where k is defined in
+    // <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-security-considerations-3>.
+    const CHUNKLEN: usize = 64;
+    const_assert!(CHUNKLEN * 2 < 256);
+
+    // Input block size of SHA256.
+    const R_IN_BYTES: usize = 64;
+
+    let mut hash_b_0 = Sha256::new();
+    hash_b_0.update(&[0; R_IN_BYTES]);
+    hash_b_0.update(message);
+    hash_b_0.update(&[0, (CHUNKLEN * 2) as u8, 0]);
+    hash_b_0.update(domain_prefix.as_bytes());
+    hash_b_0.update(b"-");
+    hash_b_0.update(curve_id.as_bytes());
+    hash_b_0.update(b"_XMD:SHA256_SSWU_RO_");
+    hash_b_0.update(&[(22 + curve_id.len() + domain_prefix.len()) as u8]);
+    let b_0 = hash_b_0.finalize();
+
+    let mut hash_b_1 = Sha256::new();
+    hash_b_1.update(&b_0);
+    hash_b_1.update(&[1]);
+    hash_b_1.update(domain_prefix.as_bytes());
+    hash_b_1.update(b"-");
+    hash_b_1.update(curve_id.as_bytes());
+    hash_b_1.update(b"_XMD:SHA256_SSWU_RO_");
+    hash_b_1.update(&[(22 + curve_id.len() + domain_prefix.len()) as u8]);
+    let b_1 = hash_b_1.finalize();
+
+    let b_2 = {
+        let mut empty_hasher = Sha256::new();
+        for (l, r) in b_0.iter().zip(b_1.iter()) {
+            empty_hasher.update(&[*l ^ *r]);
+        }
+        empty_hasher.update(&[2]);
+        empty_hasher.update(domain_prefix.as_bytes());
+        empty_hasher.update(b"-");
+        empty_hasher.update(curve_id.as_bytes());
+        empty_hasher.update(b"_XMD:SHA256_SSWU_RO_");
+        empty_hasher.update(&[(22 + curve_id.len() + domain_prefix.len()) as u8]);
+        empty_hasher.finalize()
+    };
+
+    for (big, buf) in [b_1, b_2].iter().zip(buf.iter_mut()) {
+        let mut little = [0u8; CHUNKLEN];
+        little.copy_from_slice(big);
         little.reverse();
         *buf = F::from_bytes_wide(&little);
     }
