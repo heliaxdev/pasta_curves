@@ -4,11 +4,10 @@ use static_assertions::const_assert;
 use subtle::ConstantTimeEq;
 
 use crate::arithmetic::{CurveExt, FieldExt};
-#[cfg(feature = "sha256-hash-to-curve")]
 use sha2::{Digest, Sha256};
 
 /// Hashes over a message and writes the output to all of `buf`.
-#[cfg(not(feature = "sha256-hash-to-curve"))]
+#[cfg(feature = "blake2-hash-to-curve")]
 pub fn hash_to_field<F: FieldExt>(
     curve_id: &str,
     domain_prefix: &str,
@@ -79,7 +78,6 @@ pub fn hash_to_field<F: FieldExt>(
 }
 
 /// Hashes over a message and writes the output to all of `buf`.
-#[cfg(feature = "sha256-hash-to-curve")]
 pub fn hash_to_field<F: FieldExt>(
     curve_id: &str,
     domain_prefix: &str,
