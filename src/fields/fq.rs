@@ -767,6 +767,15 @@ impl FieldExt for Fq {
 
         u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
     }
+
+    fn from_raw(bytes: [u8; 32]) -> Self {
+        Fq::from_raw([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+        ])
+    }
 }
 
 #[cfg(feature = "gpu")]

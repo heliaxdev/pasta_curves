@@ -89,7 +89,7 @@ pub fn hash_to_field<F: FieldExt>(
 
     // Assume that the field size is 32 bytes and k is 256, where k is defined in
     // <https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-10.html#name-security-considerations-3>.
-    const CHUNKLEN: usize = 64;
+    const CHUNKLEN: usize = 32;
     const_assert!(CHUNKLEN * 2 < 256);
 
     // Input block size of SHA256.
@@ -134,7 +134,7 @@ pub fn hash_to_field<F: FieldExt>(
         let mut little = [0u8; CHUNKLEN];
         little.copy_from_slice(big);
         little.reverse();
-        *buf = F::from_bytes_wide(&little);
+        *buf = F::from_raw(little);
     }
 }
 

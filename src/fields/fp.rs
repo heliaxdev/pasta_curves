@@ -768,6 +768,15 @@ impl FieldExt for Fp {
 
         u128::from(tmp.0[0]) | (u128::from(tmp.0[1]) << 64)
     }
+
+    fn from_raw(bytes: [u8; 32]) -> Self {
+        Fp::from_raw([
+            u64::from_le_bytes(bytes[0..8].try_into().unwrap()),
+            u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            u64::from_le_bytes(bytes[24..32].try_into().unwrap()),
+        ])
+    }
 }
 
 #[cfg(feature = "gpu")]
@@ -942,4 +951,39 @@ fn test_from_u512() {
             0x26ebe27e262f471d
         ])
     );
+}
+
+#[test]
+fn test_xxx() {
+    // let ret = Fp::from_raw([
+    //     0xffffffffffffffff,
+    //     0xffffffffffffffff,
+    //     0xffffffffffffffff,
+    //     0xffffffffffffffff,
+    // ]);
+    // println!("{:?}", ret);
+
+    let tmp = Fp([
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+        0xffffffffffffffff,
+    ]);
+    let tmp = tmp.mul(&R2);
+    // Try to subtract the modulus
+    let (_, borrow) = sbb(tmp.0[0], MODULUS.0[0], 0);
+    let (_, borrow) = sbb(tmp.0[1], MODULUS.0[1], borrow);
+    let (_, borrow) = sbb(tmp.0[2], MODULUS.0[2], borrow);
+    let (_, borrow) = sbb(tmp.0[3], MODULUS.0[3], borrow);
+
+    // If the element is smaller than MODULUS then the
+    // subtraction will underflow, producing a borrow value
+    // of 0xffff...ffff. Otherwise, it'll be zero.
+    let is_some = (borrow as u8) & 1;
+
+    // Convert to Montgomery form by computing
+    // (a.R^0 * R^2) / R = a.R
+    // tmp *= &R2;
+
+    println!("{}, {:?}", is_some, tmp);
 }

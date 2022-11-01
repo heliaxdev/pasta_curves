@@ -137,6 +137,10 @@ pub trait FieldExt: SqrtRatio + From<bool> + Ord + Group<Scalar = Self> {
     /// Gets the lower 128 bits of this field element when expressed
     /// canonically.
     fn get_lower_128(&self) -> u128;
+
+    /// Converts from an integer represented in little endian
+    /// into its (congruent) representation.
+    fn from_raw(val: [u8; 32]) -> Self;
 }
 
 /// Tonelli–Shanks' square-root algorithm for `p mod 16 = 1`.
