@@ -908,6 +908,28 @@ macro_rules! impl_projective_curve_ext {
             })
         }
 
+        fn sha256_to_curve<'a>(domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
+            use super::hashtocurve;
+
+            Box::new(move |message| {
+                let mut us = [Field::zero(); 2];
+                hashtocurve::sha256_to_field($name::CURVE_ID, domain_prefix, message, &mut us);
+                let q0 = hashtocurve::map_to_curve_simple_swu::<$base, $name, $iso>(
+                    &us[0],
+                    $name::THETA,
+                    $name::Z,
+                );
+                let q1 = hashtocurve::map_to_curve_simple_swu::<$base, $name, $iso>(
+                    &us[1],
+                    $name::THETA,
+                    $name::Z,
+                );
+                let r = q0 + &q1;
+                debug_assert!(bool::from(r.is_on_curve()));
+                hashtocurve::iso_map::<$base, $name, $iso>(&r, &$name::ISOGENY_CONSTANTS)
+            })
+        }
+
         /// Apply the curve endomorphism by multiplying the x-coordinate
         /// by an element of multiplicative order 3.
         fn endo(&self) -> Self {
@@ -921,6 +943,11 @@ macro_rules! impl_projective_curve_ext {
     ($name:ident, $iso:ident, $base:ident, general) => {
         /// Unimplemented: hashing to this curve is not supported
         fn hash_to_curve<'a>(_domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
+            unimplemented!()
+        }
+
+        /// Unimplemented: hashing to this curve is not supported
+        fn sha256_to_curve<'a>(_domain_prefix: &'a str) -> Box<dyn Fn(&[u8]) -> Self + 'a> {
             unimplemented!()
         }
 

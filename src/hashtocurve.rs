@@ -7,7 +7,6 @@ use crate::arithmetic::{CurveExt, FieldExt};
 use sha2::{Digest, Sha256};
 
 /// Hashes over a message and writes the output to all of `buf`.
-#[cfg(feature = "blake2-hash-to-curve")]
 pub fn hash_to_field<F: FieldExt>(
     curve_id: &str,
     domain_prefix: &str,
@@ -78,7 +77,7 @@ pub fn hash_to_field<F: FieldExt>(
 }
 
 /// Hashes over a message and writes the output to all of `buf`.
-pub fn hash_to_field<F: FieldExt>(
+pub fn sha256_to_field<F: FieldExt>(
     curve_id: &str,
     domain_prefix: &str,
     message: &[u8],
@@ -130,12 +129,31 @@ pub fn hash_to_field<F: FieldExt>(
         empty_hasher.finalize()
     };
 
-    for (big, buf) in [b_1, b_2].iter().zip(buf.iter_mut()) {
-        let mut little = [0u8; CHUNKLEN];
-        little.copy_from_slice(big);
-        little.reverse();
-        *buf = F::from_raw(little);
-    }
+    let b_3 = {
+        let mut empty_hasher = Sha256::new();
+        for (l, r) in b_0.iter().zip(b_2.iter()) {
+            empty_hasher.update(&[*l ^ *r]);
+        }
+        empty_hasher.update(&[3]);
+        empty_hasher.update(domain_prefix.as_bytes());
+        empty_hasher.update(b"-");
+        empty_hasher.update(curve_id.as_bytes());
+        empty_hasher.update(b"_XMD:SHA256_SSWU_RO_");
+        empty_hasher.update(&[(22 + curve_id.len() + domain_prefix.len()) as u8]);
+        empty_hasher.finalize()
+    };
+
+    let mut first_bytes = [0u8; CHUNKLEN * 2];
+    first_bytes[16..48].copy_from_slice(&b_1);
+    first_bytes[48..].copy_from_slice(&b_2[0..16]);
+    first_bytes.reverse();
+    buf[0] = F::from_bytes_wide(&first_bytes);
+
+    let mut second_bytes = [0u8; CHUNKLEN * 2];
+    second_bytes[16..32].copy_from_slice(&b_2[16..]);
+    second_bytes[32..].copy_from_slice(&b_3);
+    second_bytes.reverse();
+    buf[1] = F::from_bytes_wide(&second_bytes);
 }
 
 /// Implements a degree 3 isogeny map.
