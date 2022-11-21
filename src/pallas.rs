@@ -1,6 +1,6 @@
 //! The Pallas and iso-Pallas elliptic curve groups.
 
-use super::{Ep, EpAffine, Fp, Fq};
+use super::{Ep, EpAffine, Fp, Fq, IsoEp};
 
 /// The base field of the Pallas and iso-Pallas curves.
 pub type Base = Fp;
@@ -13,6 +13,9 @@ pub type Point = Ep;
 
 /// A Pallas point in the affine coordinate space (or the point at infinity).
 pub type Affine = EpAffine;
+
+///
+pub type Iso = IsoEp;
 
 #[cfg(feature = "alloc")]
 #[test]

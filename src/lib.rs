@@ -26,7 +26,7 @@ pub mod pallas;
 pub mod vesta;
 
 #[cfg(feature = "alloc")]
-mod hashtocurve;
+pub mod hashtocurve;
 
 pub use curves::*;
 pub use fields::*;

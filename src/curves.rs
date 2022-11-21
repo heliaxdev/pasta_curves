@@ -1005,7 +1005,7 @@ new_curve_impl!(
     special_a0_b5
 );
 new_curve_impl!(
-    (pub(crate)),
+    (pub),
     IsoEp,
     IsoEpAffine,
     Ep,
