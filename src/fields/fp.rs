@@ -710,10 +710,10 @@ impl SqrtRatio for Fp {
         tmp.0[0] as u32
     }
 
-    #[cfg(feature = "sqrt-table")]
-    fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
-        FP_TABLES.sqrt_ratio(num, div)
-    }
+    // #[cfg(feature = "sqrt-table")]
+    // fn sqrt_ratio(num: &Self, div: &Self) -> (Choice, Self) {
+    //     FP_TABLES.sqrt_ratio(num, div)
+    // }
 
     #[cfg(feature = "sqrt-table")]
     fn sqrt_alt(&self) -> (Choice, Self) {
